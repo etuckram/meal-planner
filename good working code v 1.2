@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-
 export default function MealPlanner() {
 	
   const [selectedMonth, setSelectedMonth] = useState(new Date());
@@ -12,8 +11,6 @@ export default function MealPlanner() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
   const categories = ["Protein", "Vegetables", "Mixed"];
-  const [selectedDish, setSelectedDish] = useState("");
-  const [selectedIndex, setSelectedIndex] = useState(null);
   
   const daysInMonth = useMemo(
     () =>
@@ -49,33 +46,35 @@ export default function MealPlanner() {
   };
   const currentMonthMeals = meals[getMonthKey(selectedMonth)] || {};
 
-// Assign Dish for the day
   const handleDishAssign = useCallback(
     (dishName) => {
       if (!dishName || selectedDay === null) return;
 
       const monthKey = getMonthKey(selectedMonth);
 
-      setMeals((prevMeals) => {
-        const updatedMonthMeals = { ...(prevMeals[monthKey] || {}) };
+      setMeals((prev) => {
+        const updatedMonthMeals = { ...(prev[monthKey] || {}) };
 
-        // Prevent duplicate assignment for the same day
         if (updatedMonthMeals[selectedDay]?.includes(dishName)) {
           alert("This dish is already assigned for this day!");
-          return prevMeals;
+          return prev;
         }
-      // Get all meals in the same week
-      const week = getWeekOfMonth(selectedDay);
-      const weeklyMeals = Object.keys(updatedMonthMeals) // Iterate over days in the selected month
-        .filter((day) => getWeekOfMonth(Number(day)) === week) // Ensure day is treated as a number
-        .map((day) => updatedMonthMeals[day] || [])
-        .flat();
 
-      // Prevent duplicate assignment for the same week
-      if (weeklyMeals.includes(dishName)) {
-        alert("This dish is already assigned for this week!");
-        return prevMeals;
-      }
+        if (meals[selectedDay]?.includes(dishName)) {
+          alert("This dish is already assigned for this day!");
+          return;
+        }
+
+        const week = getWeekOfMonth(selectedDay);
+        const weeklyMeals = Object.keys(meals)
+          .filter((day) => getWeekOfMonth(day) === week)
+          .map((day) => updatedMonthMeals[day] || [])
+          .flat();
+
+        if (weeklyMeals.includes(dishName)) {
+          alert("This dish is already assigned for this week!");
+          return;
+        }
 
         // Assign the dish
         updatedMonthMeals[selectedDay] = [
@@ -84,7 +83,7 @@ export default function MealPlanner() {
         ];
 
         return {
-          ...prevMeals,
+          ...prev,
           [monthKey]: updatedMonthMeals,
         };
       });
@@ -95,24 +94,22 @@ export default function MealPlanner() {
   );
 
   const removeDish = (day, dishName) => {
+	  
+	  console.log("Removing dish:", dishName, "on day:", day); // Debugging line
+	  
     setMeals((prev) => {
-      const monthKey = getMonthKey(selectedMonth);
-      const updatedMonthMeals = { ...prev[monthKey] };
-  
-      if (updatedMonthMeals[day]) {
-        updatedMonthMeals[day] = updatedMonthMeals[day].filter(
-          (dish) => dish !== dishName
-        );
-  
-        if (updatedMonthMeals[day].length === 0) {
-          delete updatedMonthMeals[day];
-        }
-      }
-  
-      return {
-        ...prev,
-        [monthKey]: updatedMonthMeals,
-      };
+      
+	  const updatedMeals = { ...prev };
+	  
+      if (updatedMeals[day]) {
+      updatedMeals[day] = updatedMeals[day].filter((dish) => dish !== dishName);
+	  
+	  // If no dishes are left for the day, remove the day entirely
+      if (updatedMeals[day].length === 0) { 
+	  delete updatedMeals[day];
+	  }
+	}
+    return updatedMeals;
     });
   };
 
@@ -228,7 +225,7 @@ export default function MealPlanner() {
   };
 
   return (
-    <motion.div className="p-1 text-center bg-black min-h-screen">
+    <motion.div className="p-6 text-center bg-black min-h-screen">
       <h1 className="text-3xl font-bold text-orange-600">
         Monthly Meal Planner
       </h1>
@@ -244,7 +241,7 @@ export default function MealPlanner() {
             className="text-xl text-orange-600 hover:text-orange-800 px-1"
           >
             <svg
-              className="w-6 h-6 text-gray-800 dark:text-white transform rotate-180"
+              classname="w-6 h-6 text-gray-800 dark:text-white transform rotate-180"
               aria-hidden="true"
               xmlns="http://www.w3.org/2000/svg"
               width="24"
@@ -298,16 +295,16 @@ export default function MealPlanner() {
       </div>
 
       {/* Buttons */}
-      <motion.div className="flex justify-center space-x-1 p-1">
+      <motion.div className="flex justify-center mt-2 space-x-2 py-2">
         <button
           onClick={() => exportToFile("meals.json", meals)}
-          className="bg-orange-500 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-700"
+          className="bg-orange-500 text-white px-4 py-2 rounded-full hover:bg-orange-700"
         >
           Export Meals
         </button>
         <button
           onClick={() => exportToFile("dishes.json", dishes)}
-          className="bg-orange-400 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-600"
+          className="bg-orange-400 text-white px-4 py-2 rounded-full hover:bg-orange-600"
         >
           Export Dishes
         </button>
@@ -319,7 +316,7 @@ export default function MealPlanner() {
         />
         <button
           onClick={() => document.getElementById("importMeals").click()}
-          className="bg-orange-500 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-700"
+          className="bg-orange-500 text-white px-4 py-2 rounded-full hover:bg-orange-700"
         >
           Import Meals
         </button>
@@ -331,17 +328,9 @@ export default function MealPlanner() {
         />
         <button
           onClick={() => document.getElementById("importDishes").click()}
-          className="bg-orange-400 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-600"
+          className="bg-orange-400 text-white px-4 py-2 rounded-full hover:bg-orange-600"
         >
           Import Dishes
-        </button>
-
-         {/* Add Export Ingredients Buttons */}
-        <button
-          onClick={exportIngredients}
-          className="bg-orange-500 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-600"
-        >
-          Export Ingredients
         </button>
       </motion.div>
 
@@ -365,7 +354,7 @@ export default function MealPlanner() {
         ))}
       </div>
       {/* Calendar Grid */}
-      <motion.div className="grid grid-cols-7 gap-2 bg-orange-200 hover:bg-orange-100 p-1 rounded-lg shadow-lg">
+      <motion.div className="grid grid-cols-7 gap-2 bg-orange-200 hover:bg-orange-100 p-4 rounded-lg shadow-lg">
         {[...Array(firstDayOffset)].map((_, index) => (
           <div key={index} className="h-24"></div>
         ))}
@@ -386,17 +375,12 @@ export default function MealPlanner() {
                     <span>{dish}</span>
                     <button className="flex justify-between items-center ml-1 text-red-500 font-bold" onClick={(e) => {e.stopPropagation(); 
 					    // Check if the correct dish and day are being passed
-					
+						console.log("Clicked to remove dish:", dish); // Debugging line
 					
 					removeDish(index + 1, dish);}}>
-          <svg fill="#ff0000" height="15px" width="15px" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
-          viewBox="0 0 460.775 460.775" xml:space="preserve" stroke="#ff0000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-          <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> 
-          <path d="M285.08,230.397L456.218,59.27c6.076-6.077,6.076-15.911,0-21.986L423.511,4.565c-2.913-2.911-6.866-4.55-10.992-4.55 
-          c-4.127,0-8.08,1.639-10.993,4.55l-171.138,171.14L59.25,4.565c-2.913-2.911-6.866-4.55-10.993-4.55 c-4.126,0-8.08,1.639-10.992,4.55L4.558,37.284c-6.077,
-          6.075-6.077,15.909,0,21.986l171.138,171.128L4.575,401.505 c-6.074,6.077-6.074,15.911,0,21.986l32.709,32.719c2.911,2.911,6.865,4.55,10.992,4.55c4.127,0,
-          8.08-1.639,10.994-4.55 l171.117-171.12l171.118,171.12c2.913,2.911,6.866,4.55,10.993,4.55c4.128,0,8.081-1.639,10.992-4.55l32.709-32.719 c6.074-6.075,6.074-15.909,
-          0-21.986L285.08,230.397z"></path> </g></svg>
+                      <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="transparent" viewBox="0 0 24 24">
+					<path stroke="red" stroke-linecap="round" stroke-width="2" d="m6 6 12 12m3-6a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+					</svg>
 
                     </button>
                   </div>
@@ -406,76 +390,93 @@ export default function MealPlanner() {
           </motion.div>
         ))}
       </motion.div>
+		 
 
- {/* Dish List */}
-      <label className="mt-2 text-2xl text-orange-500 font-bold">DISHES:</label> <br/>
-      <div className="text-center text-orange-500 font-bold"> 
-      <select 
-    className="border bg-black rounded-full text-center" 
-    value={selectedDish} 
-    onChange={(e) => {
-      const dishName = e.target.value;
-      const dishIndex = dishes.findIndex(dish => dish.name === dishName);
-      setSelectedDish(dishName);
-      setSelectedIndex(dishIndex);
-    }}
-  >
-                  <option value="" disabled>Select a dish</option>
-                  {dishes.map ((dish, index) => (<option key={index}>{dish.name}</option>))}
-                  
-     </select>
-     
-              <button
-                className="text-blue-500 mr-2"
-                onClick={() => editDish(selectedIndex)}
-              >
-                Edit
-              </button>
-              
-              <button
-    className="text-red-500"
-    onClick={() => {
-      if (selectedIndex !== null) deleteDish(selectedIndex);
-    }}
-    disabled={selectedIndex === null} // Prevent errors if no dish is selected
-  >
-    Delete
-  </button>
-              </div> 
-    {/* Add Dish Buttons */}
-          <motion.div className="flex justify-center mt-1 space-x-2">
+      {/* Add Dish Buttons */}
+      <motion.div className="flex justify-center mt-1 space-x-2">
         <button
           onClick={handleAddDish}
-          className="bg-orange-500 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-600"
+          className="bg-orange-500 text-white px-4 py-2 rounded-full hover:bg-orange-600"
         >
           Add Dish
         </button>
+        <button
+          onClick={exportIngredients}
+          className="bg-orange-500 text-white px-4 py-2 rounded-full hover:bg-orange-600"
+        >
+          Export Ingredients
+        </button>
+			
       </motion.div>
+	  {/* Show/Hide */}	
+      <button
+        onClick={() => setIsDishListVisible((prev) => !prev)}
+        className="bg-orange-500 text-white px-4 py-2 rounded-full hover:bg-orange-600 my-2"
+      >
+        {isDishListVisible ? "Hide Dishes" : "Show Dishes"}
+      </button>
 
+      {/* Dish List */}
+      <motion.div
+        initial={{ opacity: 0, height: 0 }}
+        animate={{
+          opacity: isDishListVisible ? 1 : 0,
+          height: isDishListVisible ? "auto" : 0,
+        }}
+        transition={{ duration: 0.3 }}
+        className="overflow-hidden"
+      >
+        {dishes.map((dish, index) => (
+          <div
+            key={index}
+            className="flex justify-between items-center bg-white p-2 rounded shadow mb-2"
+          >
+            <span>
+              {dish.name} ({dish.category})
+            </span>
+            <div>
+              <button
+                className="text-blue-500 mr-2"
+                onClick={() => editDish(index)}
+              >
+                Edit
+              </button>
+              <button
+                className="text-red-500"
+                onClick={() => deleteDish(index)}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+      </motion.div>
       {/* Dish Assignment Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-orange bg-opacity-10 flex justify-center items-center">
-          <div className="bg-orange-200 p-6 rounded-xl shadow-xl border-2 border-orange-500" >
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-6 rounded-lg shadow-lg">
             <h2 className="text-lg font-bold mb-4">
               Assign Dish to Day {selectedDay}
             </h2>
             {dishes.length === 0 ? (
               <p className="text-gray-500">
                 No dishes available. Add some first!
-              </p> ) : (<select value={selectedDish} onChange={(e)=> setSelectedDish(e.target.value)}>
-                  <option value="" disabled>Select a dish</option>
-                  {dishes.map ((dish, index) => <option key={index}>{dish.name}</option>)}
-              </select>)}
-          
-            <button
-              onClick={() => handleDishAssign(selectedDish)}
-              className="mt-4 bg-red-500 hover:bg-red-700 text-white px-4 py-2 mx-1 rounded" disabled={!selectedDish}>
-              Assign Dish
-            </button>
-
+              </p>
+            ) : (
+              dishes.map((dish, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleDishAssign(dish.name)}
+                  className="block w-full text-left p-2 hover:bg-gray-200 border rounded-md my-1"
+                >
+                  {dish.name}
+                </button>
+              ))
+            )}
             <button
               onClick={() => setIsModalOpen(false)}
-              className="mt-4 bg-red-500 hover:bg-red-700 text-white px-4 py-2 rounded">
+              className="mt-4 bg-red-500 text-white px-4 py-2 rounded"
+            >
               Close
             </button>
           </div>
