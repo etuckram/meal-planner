@@ -1,4 +1,10 @@
+body {
+
+    font-family:'Garamond', Courier, monospace;
+    font-size: 1.5em;
+}
 @import "tailwindcss";
 @tailwind base; 
 @tailwind components; 
 @tailwind utilities;
+

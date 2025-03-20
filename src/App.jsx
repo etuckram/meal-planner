@@ -13,6 +13,7 @@ export default function MealPlanner() {
   const [selectedDay, setSelectedDay] = useState(null);
   const categories = ["Protein", "Vegetables", "Mixed"];
   const [selectedDish, setSelectedDish] = useState("");
+  const [assignedDish, setAssignedDish] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(null);
   
   const daysInMonth = useMemo(
@@ -153,10 +154,18 @@ export default function MealPlanner() {
 
   const handleAddDish = () => {
     const name = prompt("Enter the name of the dish:");
+
+    if (dishes.some(dish => dish.name.toLowerCase() === name.toLowerCase())) {
+      alert("This dish already exists!");
+      return;
+    }
+
     if (!name) return;
     const ingredients = prompt("Enter ingredients (comma separated):");
+
     if (!ingredients) return;
     const category = prompt("Enter category (Protein, Vegetables, Mixed):");
+
     if (!categories.includes(category)) return alert("Invalid category");
     setDishes((prev) => [
       ...prev,
@@ -172,6 +181,7 @@ export default function MealPlanner() {
     const blob = new Blob([JSON.stringify(data, null, 2)], {
       type: "application/json",
     });
+
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -179,35 +189,62 @@ export default function MealPlanner() {
     a.click();
   };
 
-  const importFromFile = (event, setData) => {
+  const importFromFile = (event, setData, expectedType) => {
     const file = event.target.files[0];
     if (!file) return;
+
+    if (
+      !window.confirm(
+        `⚠️ Warning: Importing ${expectedType} will override your existing data! 
+        Consider exporting first to avoid losing changes. Do you want to continue?`
+      )
+    ) {
+      event.target.value = ""; // Reset file input if the user cancels
+      return;
+    }
+  
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const data = JSON.parse(e.target.result);
-        if (setData === setMeals && typeof data !== "object") {
-          alert("Invalid meal file format");
+  
+        // Validate the file format
+        if (expectedType === "meals" && typeof data !== "object") {
+          alert("Invalid meals file format");
           return;
         }
-        if (setData === setDishes && !Array.isArray(data)) {
-          alert("Invalid dish file format");
+        if (expectedType === "dishes" && !Array.isArray(data)) {
+          alert("Invalid dishes file format");
           return;
         }
-        setData(data);
+  
+        // Set the state properly
+        setData(data); // Directly update the state with parsed JSON data
+  
+        // Reset file input to allow re-import
+        event.target.value = "";
       } catch (error) {
         alert("Invalid file format");
       }
     };
     reader.readAsText(file);
   };
-   
-  useEffect(() => {
-  console.log("Updated meals:", meals); // Debugging line to see updated state
-}, [meals]);
   
-     
-     
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      localStorage.setItem("meals", JSON.stringify(meals));
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [meals]);
+  
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      localStorage.setItem("dishes", JSON.stringify(dishes));
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [dishes]);
+  
+  
   const [isDishListVisible, setIsDishListVisible] = useState(true);
 
   const exportIngredients = () => {
@@ -253,9 +290,9 @@ export default function MealPlanner() {
               viewBox="0 0 24 24"
             >
               <path
-                fill-rule="evenodd"
+                fillRule="evenodd"
                 d="M3 4a1 1 0 0 0-.822 1.57L6.632 12l-4.454 6.43A1 1 0 0 0 3 20h13.153a1 1 0 0 0 .822-.43l4.847-7a1 1 0 0 0 0-1.14l-4.847-7a1 1 0 0 0-.822-.43H3Z"
-                clip-rule="evenodd"
+                clipRule="evenodd"
               />
             </svg>
           </button>
@@ -280,7 +317,7 @@ export default function MealPlanner() {
           className="text-xl text-orange-600 hover:text-orange-800 px-1"
         >
           <svg
-            classname="w-6 h-6 text-gray-800 dark:text-white"
+            className="w-6 h-6 text-gray-800 dark:text-white"
             aria-hidden="true"
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -289,19 +326,19 @@ export default function MealPlanner() {
             viewBox="0 0 24 24"
           >
             <path
-              fill-rule="evenodd"
+              fillRule="evenodd"
               d="M3 4a1 1 0 0 0-.822 1.57L6.632 12l-4.454 6.43A1 1 0 0 0 3 20h13.153a1 1 0 0 0 .822-.43l4.847-7a1 1 0 0 0 0-1.14l-4.847-7a1 1 0 0 0-.822-.43H3Z"
-              clip-rule="evenodd"
+              clipRule="evenodd"
             />
           </svg>
         </button>
       </div>
 
-      {/* Buttons */}
+      {/* Export Buttons */}
       <motion.div className="flex justify-center space-x-1 p-1">
         <button
           onClick={() => exportToFile("meals.json", meals)}
-          className="bg-orange-500 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-700"
+          className="bg-orange-400 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-700"
         >
           Export Meals
         </button>
@@ -309,11 +346,13 @@ export default function MealPlanner() {
           onClick={() => exportToFile("dishes.json", dishes)}
           className="bg-orange-400 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-600"
         >
-          Export Dishes
+          Export Dish
         </button>
+
+        {/* Import Buttons */}
         <input
           type="file"
-          onChange={(e) => importFromFile(e, setMeals)}
+          onChange={(e) => importFromFile(e, setMeals, "meals")}
           hidden
           id="importMeals"
         />
@@ -321,25 +360,26 @@ export default function MealPlanner() {
           onClick={() => document.getElementById("importMeals").click()}
           className="bg-orange-500 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-700"
         >
-          Import Meals
+          ⚠️ Import Meals
         </button>
+
         <input
           type="file"
-          onChange={(e) => importFromFile(e, setDishes)}
+          onChange={(e) => importFromFile(e, setDishes, "dishes")}
           hidden
           id="importDishes"
         />
         <button
           onClick={() => document.getElementById("importDishes").click()}
-          className="bg-orange-400 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-600"
+          className="bg-orange-500 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-600"
         >
-          Import Dishes
+          ⚠️ Import Dish
         </button>
 
-         {/* Add Export Ingredients Buttons */}
+         {/* Export Ingredients Buttons */}
         <button
           onClick={exportIngredients}
-          className="bg-orange-500 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-600"
+          className="bg-orange-400 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-600"
         >
           Export Ingredients
         </button>
@@ -380,24 +420,14 @@ export default function MealPlanner() {
               onClick={() => openModal(index + 1)}
             >
               <p className="text-lg font-semibold">{index + 1}</p>
-              <div className="text-sm text-orange-500 mt-1 font-bold">
+              <div className="text-sm text-orange-500 font-bold">
                 {(currentMonthMeals[index + 1] || []).map((dish, i) => (
-                  <div key={i} className="flex justify-between items-center">
+                  <div key={i} className="">
                     <span>{dish}</span>
-                    <button className="flex justify-between items-center ml-1 text-red-500 font-bold" onClick={(e) => {e.stopPropagation(); 
-					    // Check if the correct dish and day are being passed
-					
-					
-					removeDish(index + 1, dish);}}>
-          <svg fill="#ff0000" height="15px" width="15px" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
-          viewBox="0 0 460.775 460.775" xml:space="preserve" stroke="#ff0000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-          <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> 
-          <path d="M285.08,230.397L456.218,59.27c6.076-6.077,6.076-15.911,0-21.986L423.511,4.565c-2.913-2.911-6.866-4.55-10.992-4.55 
-          c-4.127,0-8.08,1.639-10.993,4.55l-171.138,171.14L59.25,4.565c-2.913-2.911-6.866-4.55-10.993-4.55 c-4.126,0-8.08,1.639-10.992,4.55L4.558,37.284c-6.077,
-          6.075-6.077,15.909,0,21.986l171.138,171.128L4.575,401.505 c-6.074,6.077-6.074,15.911,0,21.986l32.709,32.719c2.911,2.911,6.865,4.55,10.992,4.55c4.127,0,
-          8.08-1.639,10.994-4.55 l171.117-171.12l171.118,171.12c2.913,2.911,6.866,4.55,10.993,4.55c4.128,0,8.081-1.639,10.992-4.55l32.709-32.719 c6.074-6.075,6.074-15.909,
-          0-21.986L285.08,230.397z"></path> </g></svg>
+                    <button className="" onClick={(e) => {e.stopPropagation(); 
 
+					removeDish(index + 1, dish);}}>
+          ❌
                     </button>
                   </div>
                 ))}
@@ -408,10 +438,10 @@ export default function MealPlanner() {
       </motion.div>
 
  {/* Dish List */}
-      <label className="mt-2 text-2xl text-orange-500 font-bold">DISHES:</label> <br/>
-      <div className="text-center text-orange-500 font-bold"> 
+      <label className="mt-2 text-3xl text-orange-500 font-bold">🥑Low Carb Food List🥑</label> <br/>
+      <div className="text-center text-white font-bold"> 
       <select 
-    className="border bg-black rounded-full text-center" 
+    className="border bg-orange-500 rounded-full text-center hover:bg-orange-500 active:bg-yellow-500" 
     value={selectedDish} 
     onChange={(e) => {
       const dishName = e.target.value;
@@ -420,16 +450,26 @@ export default function MealPlanner() {
       setSelectedIndex(dishIndex);
     }}
   >
-                  <option value="" disabled>Select a dish</option>
+                  <option value="" disabled>Select a Dish</option>
                   {dishes.map ((dish, index) => (<option key={index}>{dish.name}</option>))}
                   
-     </select>
-     
+     </select><br />
+     </div> 
+
+        {/* Add Dish Buttons */}
+        <motion.div className="flex justify-center font-bold">
+        <button
+          onClick={handleAddDish}
+          className="pl-1 text-white mr-2"
+        >
+          ➕Add Dish
+        </button>
+      
               <button
-                className="text-blue-500 mr-2"
+                className="pl-1 text-blue-500 mr-2"
                 onClick={() => editDish(selectedIndex)}
               >
-                Edit
+              ✏️Edit Dish
               </button>
               
               <button
@@ -439,43 +479,34 @@ export default function MealPlanner() {
     }}
     disabled={selectedIndex === null} // Prevent errors if no dish is selected
   >
-    Delete
+    ❌Delete Dish
   </button>
-              </div> 
-    {/* Add Dish Buttons */}
-          <motion.div className="flex justify-center mt-1 space-x-2">
-        <button
-          onClick={handleAddDish}
-          className="bg-orange-500 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-600"
-        >
-          Add Dish
-        </button>
-      </motion.div>
+  </motion.div> 
 
       {/* Dish Assignment Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-orange bg-opacity-10 flex justify-center items-center">
           <div className="bg-orange-200 p-6 rounded-xl shadow-xl border-2 border-orange-500" >
             <h2 className="text-lg font-bold mb-4">
-              Assign Dish to Day {selectedDay}
+              Assign Dish to {selectedMonth.toLocaleDateString("en-US", { month: "long",})} {selectedDay}
             </h2>
             {dishes.length === 0 ? (
               <p className="text-gray-500">
                 No dishes available. Add some first!
-              </p> ) : (<select value={selectedDish} onChange={(e)=> setSelectedDish(e.target.value)}>
+              </p> ) : (<select className="mt-4 bg-orange-400 text-white px-4 py-2 mx-1 rounded"  value={assignedDish} onChange={(e)=> setAssignedDish(e.target.value)}>
                   <option value="" disabled>Select a dish</option>
                   {dishes.map ((dish, index) => <option key={index}>{dish.name}</option>)}
               </select>)}
           
             <button
-              onClick={() => handleDishAssign(selectedDish)}
-              className="mt-4 bg-red-500 hover:bg-red-700 text-white px-4 py-2 mx-1 rounded" disabled={!selectedDish}>
+              onClick={() => handleDishAssign(assignedDish)}
+              className="mt-4 bg-red-500 hover:bg-orange-400 text-white px-4 py-2 mx-1 rounded" disabled={!assignedDish}>
               Assign Dish
             </button>
 
             <button
               onClick={() => setIsModalOpen(false)}
-              className="mt-4 bg-red-500 hover:bg-red-700 text-white px-4 py-2 rounded">
+              className="mt-4 bg-red-500 hover:bg-orange-400 text-white px-4 py-2 rounded">
               Close
             </button>
           </div>
