@@ -15,6 +15,20 @@ export default function MealPlanner() {
   const [selectedDish, setSelectedDish] = useState("");
   const [assignedDish, setAssignedDish] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(null);
+
+  const getTimestamp = () => {
+    const now = new Date();
+    const MM = String(now.getMonth() + 1).padStart(2, "0"); // Month (01-12)
+    const DD = String(now.getDate()).padStart(2, "0"); // Day (01-31)
+    const YYYY = now.getFullYear(); // Year (2025)
+    const HH = String(now.getHours()).padStart(2, "0"); // Hours (00-23)
+    const MIN = String(now.getMinutes()).padStart(2, "0"); // Minutes (00-59)
+    const SS = String(now.getSeconds()).padStart(2, "0"); // Seconds (00-59)
+  
+    return `${MM}${DD}${YYYY}_${HH}${MIN}${SS}`; // Format: MMDDYYYY_HHMMSS
+  };
+  
+  
   
   const daysInMonth = useMemo(
     () =>
@@ -279,7 +293,7 @@ export default function MealPlanner() {
     exportToFile(`ingredients_${timestamp}.json`, uniqueIngredients);
   };
   
- 
+
   return (
     <motion.div className="p-1 text-center bg-black min-h-screen">
       <h1 className="text-3xl font-bold text-orange-600">
@@ -350,16 +364,18 @@ export default function MealPlanner() {
         </button>
       </div>
 
+
       {/* Export Buttons */}
       <motion.div className="flex justify-center space-x-1 p-1">
+        
         <button
-          onClick={() => exportToFile("meals.json", meals)}
+          onClick={() => exportToFile(`meals_${getTimestamp()}.json`, meals)}
           className="bg-orange-400 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-700"
         >
           Export Meals
         </button>
         <button
-          onClick={() => exportToFile("dishes.json", dishes)}
+          onClick={() => exportToFile(`dishes_${getTimestamp()}.json`, dishes)}
           className="bg-orange-400 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-600"
         >
           Export Dish
@@ -394,7 +410,7 @@ export default function MealPlanner() {
 
          {/* Export Ingredients Buttons */}
         <button
-          onClick={exportIngredients()}
+          onClick={exportIngredients}
           className="bg-orange-400 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-600"
         >
           Export Ingredients
