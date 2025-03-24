@@ -251,19 +251,35 @@ export default function MealPlanner() {
     const usedDishes = Object.values(meals)
       .map((monthData) => Object.values(monthData).flat())
       .flat();
+  
     const ingredients = dishes
       .filter((dish) => usedDishes.includes(dish.name))
       .map((dish) => dish.ingredients)
       .flat();
-
+  
     if (ingredients.length === 0) {
       alert("No ingredients to export!");
       return;
     }
-
-    exportToFile("ingredients.json", Array.from(new Set(ingredients)));
+  
+    const uniqueIngredients = Array.from(new Set(ingredients));
+  
+    // Generate timestamp in MMDDYYYY_HHMMSS format
+    const timestamp = new Date().toLocaleString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).replace(/[\/,:\s]/g, "").replace(/^(\d{2})(\d{2})(\d{4})/, "$1$2$3_");
+  
+    // Export file with timestamp
+    exportToFile(`ingredients_${timestamp}.json`, uniqueIngredients);
   };
-
+  
+ 
   return (
     <motion.div className="p-1 text-center bg-black min-h-screen">
       <h1 className="text-3xl font-bold text-orange-600">
@@ -378,7 +394,7 @@ export default function MealPlanner() {
 
          {/* Export Ingredients Buttons */}
         <button
-          onClick={exportIngredients}
+          onClick={exportIngredients()}
           className="bg-orange-400 text-white px-4 py-2 my-2 rounded-full hover:bg-orange-600"
         >
           Export Ingredients
