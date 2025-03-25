@@ -64,7 +64,7 @@ export default function MealPlanner() {
   };
   const currentMonthMeals = meals[getMonthKey(selectedMonth)] || {};
 
-// Assign Dish for the day
+  // Assign Dish for the day
   const handleDishAssign = useCallback(
     (dishName) => {
       if (!dishName || selectedDay === null) return;
@@ -98,9 +98,13 @@ export default function MealPlanner() {
           dishName,
         ];
 
+        const sortedMonthMeals = Object.fromEntries(
+          Object.entries(updatedMonthMeals).sort(([dayA], [dayB]) => dayA - dayB)
+        );
+
         return {
           ...prevMeals,
-          [monthKey]: updatedMonthMeals,
+          [monthKey]: sortedMonthMeals,
         };
       });
 
@@ -181,6 +185,7 @@ export default function MealPlanner() {
     const category = prompt("Enter category (Protein, Vegetables, Mixed):");
 
     if (!categories.includes(category)) return alert("Invalid category");
+    
     setDishes((prev) => [
       ...prev,
       {
@@ -468,6 +473,8 @@ export default function MealPlanner() {
           </motion.div>
         ))}
       </motion.div>
+
+
 
  {/* Dish List */}
       <label className="mt-2 text-3xl text-orange-500 font-bold">🥑Low Carb Food List🥑</label> <br/>
